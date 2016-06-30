@@ -1,0 +1,13 @@
+// $Id$
+// vim:ft=javascript
+
+// If your extension references something external, use ARG_WITH
+// ARG_WITH("fastcgi_client", "for fastcgi_client support", "no");
+
+// Otherwise, use ARG_ENABLE
+// ARG_ENABLE("fastcgi_client", "enable fastcgi_client support", "no");
+
+if (PHP_FASTCGI_CLIENT != "no") {
+	EXTENSION("fastcgi_client", "fastcgi_client.c");
+}
+

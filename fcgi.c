@@ -13,20 +13,20 @@ int
 fastcgi_connect(char *addr, short port)
 {
     int fd;
-    struct sockaddr_in saddr;
+    struct sockaddr_in sain;
 
     fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd < 0) {
     	return -1;
     }
 
-    bzero(&saddr, sizeof(saddr));
+    bzero(&sain, sizeof(sain));
 
-    saddr.sin_family = AF_INET;
-    saddr.sin_addr.s_addr = inet_addr(addr);
-    saddr.sin_port = htons(port);
+    sain.sin_family = AF_INET;
+    sain.sin_addr.s_addr = inet_addr(addr);
+    sain.sin_port = htons(port);
 
-    if (connect(fd, (struct sockaddr *)&saddr, sizeof(saddr)) < 0) {
+    if (connect(fd, (struct sockaddr *)&sain, sizeof(sain)) < 0) {
     	close(fd);
     	return -1;
     }

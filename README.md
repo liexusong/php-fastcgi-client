@@ -1,7 +1,8 @@
 # php-fastcgi-client
 PHP FastCGI client
 
-```Example:```
+### Example: ###
+
 ```
 <?php
 

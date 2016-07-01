@@ -9,6 +9,31 @@
 
 static char _paramsbuf[PARAMS_BUFF_MAX_LEN];
 
+int
+fastcgi_connect(char *addr, short port)
+{
+    int fd;
+    struct sockaddr_in saddr;
+
+    fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (fd < 0) {
+    	return -1;
+    }
+
+    bzero(&saddr, sizeof(saddr));
+
+    saddr.sin_family = AF_INET;
+    saddr.sin_addr.s_addr = inet_addr(addr);
+    saddr.sin_port = htons(port);
+
+    if (connect(fd, (struct sockaddr *)&saddr, sizeof(saddr)) < 0) {
+    	close(fd);
+    	return -1;
+    }
+
+    return fd;
+}
+
 void
 fastcgi_init_header(fcgi_header *header, int type,
 	int request_id, int content_length, int padding_legnth)

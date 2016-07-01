@@ -13,9 +13,9 @@ dnl [  --with-fastcgi_client             Include fastcgi_client support])
 
 dnl Otherwise use enable:
 
-dnl PHP_ARG_ENABLE(fastcgi_client, whether to enable fastcgi_client support,
+PHP_ARG_ENABLE(fastcgi_client, whether to enable fastcgi_client support,
 dnl Make sure that the comment is aligned:
-dnl [  --enable-fastcgi_client           Enable fastcgi_client support])
+[  --enable-fastcgi_client           Enable fastcgi_client support])
 
 if test "$PHP_FASTCGI_CLIENT" != "no"; then
   dnl Write more examples of tests here...
@@ -45,7 +45,7 @@ if test "$PHP_FASTCGI_CLIENT" != "no"; then
 
   dnl # --with-fastcgi_client -> check for lib and symbol presence
   dnl LIBNAME=fastcgi_client # you may want to change this
-  dnl LIBSYMBOL=fastcgi_client # you most likely want to change this 
+  dnl LIBSYMBOL=fastcgi_client # you most likely want to change this
 
   dnl PHP_CHECK_LIBRARY($LIBNAME,$LIBSYMBOL,
   dnl [
@@ -59,5 +59,5 @@ if test "$PHP_FASTCGI_CLIENT" != "no"; then
   dnl
   dnl PHP_SUBST(FASTCGI_CLIENT_SHARED_LIBADD)
 
-  PHP_NEW_EXTENSION(fastcgi_client, fastcgi_client.c, $ext_shared)
+  PHP_NEW_EXTENSION(fastcgi_client, fastcgi_client.c fcgi.c, $ext_shared)
 fi

@@ -1,21 +1,15 @@
 <?php
-$br = (php_sapi_name() == "cli")? "":"<br>";
 
-if(!extension_loaded('fastcgi_client')) {
-	dl('php_fastcgi_client.' . PHP_SHLIB_SUFFIX);
-}
-$module = 'fastcgi_client';
-$functions = get_extension_funcs($module);
-echo "Functions available in the test extension:$br\n";
-foreach($functions as $func) {
-    echo $func."$br\n";
-}
-echo "$br\n";
-$function = 'confirm_' . $module . '_compiled';
-if (extension_loaded($module)) {
-	$str = $function($module);
-} else {
-	$str = "Module $module is not compiled into PHP";
-}
-echo "$str\n";
-?>
+/* Example */
+
+$fcgi = new FastCGI_Client();
+
+$fcgi->connect('127.0.0.1', 9000);
+$fcgi->send_param('SCRIPT_FILENAME', '/index.php'); /* script filename */
+$fcgi->send_param('REQUEST_METHOD', 'GET');
+$fcgi->start_request();
+
+$content = $fcgi->read_response();
+var_dump($content);
+
+$fcgi->close();

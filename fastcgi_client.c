@@ -26,6 +26,9 @@
 #include "php_ini.h"
 #include "ext/standard/info.h"
 #include "php_fastcgi_client.h"
+#include "fcgi.h"
+
+#define  FASTCGI_CONNECTION_SOCKET  "__sockfd"
 
 /* If you declare any globals in php_fastcgi_client.h uncomment this:
 ZEND_DECLARE_MODULE_GLOBALS(fastcgi_client)
@@ -33,6 +36,7 @@ ZEND_DECLARE_MODULE_GLOBALS(fastcgi_client)
 
 /* True global resources - no need for thread safety here */
 static int le_fastcgi_client;
+static zend_class_entry *fastcgi_ce;
 
 /* {{{ PHP_INI
  */
@@ -44,52 +48,194 @@ PHP_INI_END()
 */
 /* }}} */
 
-/* Remove the following function when you have successfully modified config.m4
-   so that your module can be compiled into PHP, it exists only for testing
-   purposes. */
+zend_function_entry fastcgi_methods[] = {
+	PHP_ME(FastCGI_Client, connect,       NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(FastCGI_Client, send_param,    NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(FastCGI_Client, start_request, NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(FastCGI_Client, read_response, NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(FastCGI_Client, close,         NULL, ZEND_ACC_PUBLIC)
+	{NULL, NULL, NULL}
+};
 
-/* Every user-visible function in PHP should document itself in the source */
-/* {{{ proto string confirm_fastcgi_client_compiled(string arg)
-   Return a string to confirm that the module is compiled in */
-PHP_FUNCTION(confirm_fastcgi_client_compiled)
+
+PHP_METHOD(FastCGI_Client, connect)
 {
-	char *arg = NULL;
-	int arg_len, len;
-	char *strg;
+	int fd;
+	zval *instance;
+	char *addr;
+	int addr_len;
+	int port;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &arg, &arg_len) == FAILURE) {
-		return;
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"sl", &addr, &addr_len, &port) == FAILURE)
+	{
+		RETURN_FALSE;
 	}
 
-	len = spprintf(&strg, 0, "Congratulations! You have successfully modified ext/%.78s/config.m4. Module %.78s is now compiled into PHP.", "fastcgi_client", arg);
-	RETURN_STRINGL(strg, len, 0);
+	instance = getThis();
+
+	fd = fastcgi_connect(addr, (short)port);
+	if (fd < 0) {
+		RETURN_FALSE;
+	}
+
+	zend_update_property_long(fastcgi_ce, instance,
+		ZEND_STRL(FASTCGI_CONNECTION_SOCKET), fd TSRMLS_CC);
+
+	RETURN_TRUE;
 }
-/* }}} */
-/* The previous line is meant for vim and emacs, so it can correctly fold and 
-   unfold functions in source code. See the corresponding marks just before 
-   function definition, where the functions purpose is also documented. Please 
-   follow this convention for the convenience of others editing your code.
-*/
 
 
-/* {{{ php_fastcgi_client_init_globals
- */
-/* Uncomment this function if you have INI entries
-static void php_fastcgi_client_init_globals(zend_fastcgi_client_globals *fastcgi_client_globals)
+PHP_METHOD(FastCGI_Client, send_param)
 {
-	fastcgi_client_globals->global_value = 0;
-	fastcgi_client_globals->global_string = NULL;
+	int fd;
+	zval *instance, *sock;
+	char *key, *val;
+	int key_len, val_len;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"ss", &key, &key_len, &val, &val_len) == FAILURE)
+	{
+		RETURN_FALSE;
+	}
+
+	instance = getThis();
+
+	sock = zend_read_property(fastcgi_ce,
+		instance, ZEND_STRL(FASTCGI_CONNECTION_SOCKET), 0 TSRMLS_CC);
+
+	if (Z_LVAL_P(sock) < 0
+		|| fastcgi_send_param(Z_LVAL_P(sock), key, key_len, val, val_len) == -1)
+	{
+		RETURN_FALSE;
+	}
+
+	RETURN_TRUE;
 }
-*/
-/* }}} */
+
+
+PHP_METHOD(FastCGI_Client, start_request)
+{
+	int fd;
+	zval *instance, *sock;
+
+	instance = getThis();
+
+	sock = zend_read_property(fastcgi_ce,
+		instance, ZEND_STRL(FASTCGI_CONNECTION_SOCKET), 0 TSRMLS_CC);
+
+	if (Z_LVAL_P(sock) < 0
+		|| fastcgi_send_end_request(Z_LVAL_P(sock)) == -1)
+	{
+		RETURN_FALSE;
+	}
+
+	RETURN_TRUE;
+}
+
+
+PHP_METHOD(FastCGI_Client, read_response)
+{
+	int fd;
+	zval *instance, *sock;
+	fcgi_header response_header;
+	char *response = NULL;
+	int total = 0;
+	int exit_flag = 0;
+
+	instance = getThis();
+
+	sock = zend_read_property(fastcgi_ce,
+		instance, ZEND_STRL(FASTCGI_CONNECTION_SOCKET), 0 TSRMLS_CC);
+	if (Z_LVAL_P(sock) < 0){
+		RETURN_FALSE;
+	}
+
+	while (!exit_flag) {
+
+		if (fastcgi_read_header(Z_LVAL_P(sock), &response_header) == -1) {
+			RETURN_FALSE;
+		}
+
+		switch (response_header.type) {
+			case FCGI_TYPE_STDOUT:
+			case FCGI_TYPE_STDERR:
+			{
+				int length, padding;
+				char *response;
+				int ret;
+
+				length = (response_header.content_length_b1 << 8)
+						+ response_header.content_length_b0;
+				padding = response_header.padding_length;
+
+				total += length; /* total bytes */
+
+				response = erealloc(response, total);
+				if (!response) {
+					RETURN_FALSE;
+				}
+
+				ret = fastcgi_read_body(Z_LVAL_P(sock),
+					response + (total - length), length, padding);
+				if (ret == -1) {
+					RETURN_FALSE;
+				}
+
+				break;
+			}
+
+			case FCGI_TYPE_END_REQUEST:
+			{
+				if (fastcgi_read_end_request(Z_LVAL_P(sock)) == -1) {
+					RETURN_FALSE;
+				}
+
+				exit_flag = 1;
+
+				break;
+			}
+		}
+	}
+
+	RETURN_STRINGL(response, total, 0);
+}
+
+
+PHP_METHOD(FastCGI_Client, close)
+{
+	zval *instance, *sock;
+
+	instance = getThis();
+
+	sock = zend_read_property(fastcgi_ce,
+		instance, ZEND_STRL(FASTCGI_CONNECTION_SOCKET), 0 TSRMLS_CC);
+
+	if (Z_LVAL_P(sock) < 0) {
+		RETURN_FALSE;
+	}
+
+	close(Z_LVAL_P(sock));
+
+	zend_update_property_long(fastcgi_ce, instance,
+		ZEND_STRL(FASTCGI_CONNECTION_SOCKET), -1 TSRMLS_CC);
+
+	RETURN_TRUE;
+}
 
 /* {{{ PHP_MINIT_FUNCTION
  */
 PHP_MINIT_FUNCTION(fastcgi_client)
 {
-	/* If you have INI entries, uncomment these lines 
-	REGISTER_INI_ENTRIES();
-	*/
+	zend_class_entry ce;
+
+	INIT_CLASS_ENTRY(ce, "FastCGI_Client", fastcgi_methods);
+
+	fastcgi_ce = zend_register_internal_class_ex(&ce, NULL, NULL TSRMLS_CC);
+
+	zend_declare_property_long(fastcgi_ce,
+		ZEND_STRL(FASTCGI_CONNECTION_SOCKET), -1, ZEND_ACC_PRIVATE TSRMLS_CC);
+
 	return SUCCESS;
 }
 /* }}} */
@@ -142,7 +288,6 @@ PHP_MINFO_FUNCTION(fastcgi_client)
  * Every user visible function must have an entry in fastcgi_client_functions[].
  */
 const zend_function_entry fastcgi_client_functions[] = {
-	PHP_FE(confirm_fastcgi_client_compiled,	NULL)		/* For testing, remove later. */
 	PHP_FE_END	/* Must be the last line in fastcgi_client_functions[] */
 };
 /* }}} */

@@ -87,4 +87,20 @@ typedef struct {
 #define FCGI_RESPONSE_VALUE  1
 #define FCGI_RESPONSE_CLOSE  2
 
+/* FastCGI APIs */
+
+int fastcgi_connect(char *addr, short port);
+void fastcgi_init_header(fcgi_header *header, int type,
+	int request_id, int content_length, int padding_legnth);
+void fastcgi_init_begin_request_body(fcgi_begin_request_body *body,
+	int role, int keepalive);
+void fastcgi_init_kv_body(unsigned char *buf, int *len,
+	unsigned char *key, int klen, unsigned char *val, int vlen);
+int fastcgi_send_start_request(int fd);
+int fastcgi_send_param(int fd, char *key, int klen, char *val, int vlen);
+int fastcgi_send_end_request(int fd);
+int fastcgi_read_header(int fd, fcgi_header *header);
+int fastcgi_read_body(int fd, char *buffer, int length, int padding);
+int fastcgi_read_end_request(int fd);
+
 #endif

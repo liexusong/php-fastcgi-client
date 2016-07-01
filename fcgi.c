@@ -43,7 +43,7 @@ fastcgi_connect(char *addr, short port)
 
 void
 fastcgi_init_header(fcgi_header *header, int type,
-	int request_id, int content_length, int padding_legnth)
+	int request_id, int content_length, int padding_length)
 {
 	header->version = FCGI_VERSION_1;
 	header->type = (unsigned char)type;
@@ -51,7 +51,7 @@ fastcgi_init_header(fcgi_header *header, int type,
 	header->request_id_b0 = (unsigned char)(request_id & 0xFF);
 	header->content_length_b1 = (unsigned char)((content_length >> 8) & 0xFF);
 	header->content_length_b0 = (unsigned char)(content_length & 0xFF);
-	header->padding_legnth = padding_legnth;
+	header->padding_length = padding_length;
 	header->reserved = 0;
 }
 

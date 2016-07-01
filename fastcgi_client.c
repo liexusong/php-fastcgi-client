@@ -50,7 +50,7 @@ PHP_INI_END()
 
 zend_function_entry fastcgi_methods[] = {
 	PHP_ME(FastCGI_Client, connect,       NULL, ZEND_ACC_PUBLIC)
-	PHP_ME(FastCGI_Client, send_param,    NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(FastCGI_Client, set_param,     NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(FastCGI_Client, start_request, NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(FastCGI_Client, read_response, NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(FastCGI_Client, close,         NULL, ZEND_ACC_PUBLIC)
@@ -86,7 +86,7 @@ PHP_METHOD(FastCGI_Client, connect)
 }
 
 
-PHP_METHOD(FastCGI_Client, send_param)
+PHP_METHOD(FastCGI_Client, set_param)
 {
 	int fd;
 	zval *instance, *sock;

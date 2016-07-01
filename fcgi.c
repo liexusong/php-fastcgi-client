@@ -148,6 +148,7 @@ fastcgi_read_header(int fd, fcgi_header *header)
 	if (read(fd, header, FCGI_HEADER_LENGTH) != FCGI_HEADER_LENGTH) {
 		return -1;
 	}
+
 	return 0;
 }
 

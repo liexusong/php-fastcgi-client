@@ -141,7 +141,7 @@ fastcgi_send_end_request(int fd)
 {
 	fcgi_header header;
 
-	fastcgi_init_header(&header, FCGI_TYPE_END_REQUEST, 0, 0, 0);
+	fastcgi_init_header(&header, FCGI_TYPE_PARAMS, 0, 0, 0);
 
 	if (write(fd, &header, FCGI_HEADER_LENGTH) != FCGI_HEADER_LENGTH) {
 		return -1;

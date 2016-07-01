@@ -3,6 +3,14 @@
  * @author: xusong.lie
  */
 
+#include <string>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <errno.h>
+#include <string.h>
+#include <stdio.h>
 #include "fcgi.h"
 
 #define PARAMS_BUFF_MAX_LEN 5120

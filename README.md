@@ -3,7 +3,7 @@ PHP FastCGI client
 
 ### Example: ###
 
-```
+```php
 <?php
 
 /* Example */

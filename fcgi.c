@@ -143,59 +143,101 @@ fastcgi_send_end_request(int fd)
 }
 
 int
-fastcgi_read_package(int fd,
-	void *(*memalloc)(size_t size),
-	void (*memfree)(void *),
-	char **retbuf, int *retlen)
+fastcgi_read_header(int fd, fcgi_header *header)
 {
-	fcgi_header header;
-	size_t length;
-	char *buffer = NULL, padding[8];
-	int nread;
-
-	nread = read(fd, &header, FCGI_HEADER_LENGTH);
-	if (nread != FCGI_HEADER_LENGTH) {
-		return FCGI_RESPONSE_ERROR;
+	if (read(fd, header, FCGI_HEADER_LENGTH) != FCGI_HEADER_LENGTH) {
+		return -1;
 	}
-
-	switch (header.type) {
-
-	case FCGI_TYPE_STDOUT:
-	case FCGI_TYPE_STDERR:
-	{
-		length = (header.content_length_b1 << 8) + header.content_length_b0;
-
-		buffer = (char *)memalloc(length);
-		if (!buffer) {
-			return FCGI_RESPONSE_ERROR;
-		}
-
-		/* read content */
-		nread = read(fd, buffer, length);
-		if (nread != length) {
-			memfree(buffer);
-			return FCGI_RESPONSE_ERROR;
-		}
-
-		/* read padding */
-		if (header.padding_legnth > 0) {
-			read(fd, padding, header.padding_legnth);
-		}
-
-		*retlen = length;
-		*retbuf = buffer;
-
-		return FCGI_RESPONSE_VALUE;
-	}
-
-	case FCGI_TYPE_END_REQUEST:
-	{
-		fcgi_end_request_body body;
-
-		if (read(fd, &body, sizeof(body)) != sizeof(body)) {
-			return FCGI_RESPONSE_ERROR;
-		}
-		return FCGI_RESPONSE_CLOSE;
-	}
-	}
+	return 0;
 }
+
+int
+fastcgi_read_body(int fd, char *buffer, int length, int padding)
+{
+	int nread;
+	char temp[8];
+
+	nread = read(fd, buffer, length);
+	if (nread != length) {
+		return -1;
+	}
+
+	if (padding > 0 && padding <= 8) {
+		nread = read(fd, temp, padding);
+		if (nread != padding) {
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+int
+fastcgi_read_end_request(int fd)
+{
+	fcgi_end_request_body body;
+
+	if (read(fd, &body, sizeof(body)) != sizeof(body)) {
+		return -1;
+	}
+
+	return 0;
+}
+
+// int
+// fastcgi_read_package(int fd,
+// 	void *(*memalloc)(size_t size),
+// 	void (*memfree)(void *),
+// 	char **retbuf, int *retlen)
+// {
+// 	fcgi_header header;
+// 	size_t length;
+// 	char *buffer = NULL, padding[8];
+// 	int nread;
+
+// 	nread = read(fd, &header, FCGI_HEADER_LENGTH);
+// 	if (nread != FCGI_HEADER_LENGTH) {
+// 		return FCGI_RESPONSE_ERROR;
+// 	}
+
+// 	switch (header.type) {
+
+// 	case FCGI_TYPE_STDOUT:
+// 	case FCGI_TYPE_STDERR:
+// 	{
+// 		length = (header.content_length_b1 << 8) + header.content_length_b0;
+
+// 		buffer = (char *)memalloc(length);
+// 		if (!buffer) {
+// 			return FCGI_RESPONSE_ERROR;
+// 		}
+
+// 		/* read content */
+// 		nread = read(fd, buffer, length);
+// 		if (nread != length) {
+// 			memfree(buffer);
+// 			return FCGI_RESPONSE_ERROR;
+// 		}
+
+// 		/* read padding */
+// 		if (header.padding_legnth > 0) {
+// 			read(fd, padding, header.padding_legnth);
+// 		}
+
+// 		*retlen = length;
+// 		*retbuf = buffer;
+
+// 		return FCGI_RESPONSE_VALUE;
+// 	}
+
+// 	case FCGI_TYPE_END_REQUEST:
+// 	{
+// 		fcgi_end_request_body body;
+
+// 		if (read(fd, &body, sizeof(body)) != sizeof(body)) {
+// 			return FCGI_RESPONSE_ERROR;
+// 		}
+// 		return FCGI_RESPONSE_CLOSE;
+// 	}
+// 	}
+// }

@@ -64,6 +64,12 @@ ZEND_END_MODULE_GLOBALS(fastcgi_client)
 #define FASTCGI_CLIENT_G(v) (fastcgi_client_globals.v)
 #endif
 
+PHP_METHOD(FastCGI_Client, connect);
+PHP_METHOD(FastCGI_Client, set_param);
+PHP_METHOD(FastCGI_Client, start_request);
+PHP_METHOD(FastCGI_Client, read_response);
+PHP_METHOD(FastCGI_Client, close);
+
 #endif	/* PHP_FASTCGI_CLIENT_H */
 
 

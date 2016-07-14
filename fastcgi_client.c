@@ -64,10 +64,10 @@ PHP_METHOD(FastCGI_Client, connect)
 	zval *instance;
 	char *addr;
 	int addr_len;
-	int port;
+	int port = 9000;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"sl", &addr, &addr_len, &port) == FAILURE)
+		"s|l", &addr, &addr_len, &port) == FAILURE)
 	{
 		RETURN_FALSE;
 	}
@@ -78,6 +78,8 @@ PHP_METHOD(FastCGI_Client, connect)
 	if (fd < 0) {
 		RETURN_FALSE;
 	}
+
+	fastcgi_send_start_request(fd);
 
 	zend_update_property_long(fastcgi_ce, instance,
 		ZEND_STRL(FASTCGI_CONNECTION_SOCKET), fd TSRMLS_CC);
@@ -162,7 +164,6 @@ PHP_METHOD(FastCGI_Client, read_response)
 			case FCGI_TYPE_STDERR:
 			{
 				int length, padding;
-				char *response;
 				int ret;
 
 				length = (response_header.content_length_b1 << 8)
@@ -171,9 +172,10 @@ PHP_METHOD(FastCGI_Client, read_response)
 
 				total += length; /* total bytes */
 
-				response = erealloc(response, total);
 				if (!response) {
-					RETURN_FALSE;
+					response = emalloc(total);
+				} else {
+					response = erealloc(response, total);
 				}
 
 				ret = fastcgi_read_body(Z_LVAL_P(sock),
